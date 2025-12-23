@@ -1,0 +1,17 @@
+{
+  "coord": [9.875, 123.382],
+  "time": "2022-12-12T14:41:01+08:00",
+  "title": [
+    "Tropical Tranquility",
+    "Palm Beach Paradise"
+  ],
+  "tag": ["beach", "island", "palm", "tropical"],
+  "place": ["Badian", "Cebu", "Philippines"],
+  "weather": ["clear", "warm", "sunny"],
+  "roi": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  }
+}

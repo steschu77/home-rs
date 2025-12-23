@@ -1,0 +1,18 @@
+{
+  "coord": [54.234, 13.287],
+  "time": "2025-06-29T17:32:09+02:00",
+  "title": [
+    "Forgotten Fishing Vessels",
+    "Abandoned Baltic Boats",
+    "Stiha & Knuddel"
+  ],
+  "tag": ["boats", "fishing", "harbor"],
+  "place": ["Stahlbrode", "Germany", "Baltic Sea"],
+  "weather": ["clear", "mild", "windy"],
+  "roi": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  }
+}

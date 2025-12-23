@@ -1,0 +1,18 @@
+{
+  "coord": [10.08, 118.829],
+  "time": "2024-07-29T08:56:19+08:00",
+  "title": [
+    "Forest Retreat in the Canopy",
+    "Atremaru: A Quiet Gem in Green",
+    "Form follows forest"
+  ],
+  "tag": ["nature", "lush", "eco", "tropical", "forest", "architecture"],
+  "place": ["Atremaru", "Palawan", "Philippines"],
+  "weather": ["clear", "warm"],
+  "roi": {
+    "x0": 0.0,
+    "y0": 0.0,
+    "x1": 1.0,
+    "y1": 1.0
+  }
+}

@@ -1,0 +1,26 @@
+[package]
+name = "home-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+miniwebp = { git = "https://github.com/steschu77/miniwebp-rs.git" }
+miniz = { git = "https://github.com/steschu77/miniz-rs.git" }
+log = { version = "0.4", features = ["std"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_System",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Threading",
+    "Win32_Graphics",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_OpenGL",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging"
+] }
+
+[target.'cfg(unix)'.dependencies]
+x11 = { version = "2.21", features = ["xlib", "glx"] }
