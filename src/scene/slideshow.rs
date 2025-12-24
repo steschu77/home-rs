@@ -111,7 +111,9 @@ impl SlideShowScene {
         .unwrap_or(&self.title)
         .to_string();
 
-        let Ok(handle) = layouter.create_text(&text).inspect_err(|e| {
+        //let res = layouter.create_text(&text);
+        let res = layouter.create_multiline_text(&text, 0.6 / 0.05);
+        let Ok(handle) = res.inspect_err(|e| {
             log::error!("Failed to create text {text}: {e}");
         }) else {
             return Some(Layout::empty());
