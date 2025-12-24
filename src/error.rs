@@ -28,11 +28,16 @@ pub enum Error {
     FileRead {
         path: PathBuf,
     },
-    FileIo,
     InvalidGallery,
     InvalidScene,
     EmptyScenes,
     EmptyPhotos,
+    FileIo {
+        err: std::io::Error,
+    },
+    ParseInt {
+        err: std::num::ParseIntError,
+    },
     Win32 {
         code: i32,
     },
@@ -42,7 +47,6 @@ pub enum Error {
     Png {
         err: miniz::png_read::Error,
     },
-    ParseInt,
     Serde {
         line: usize,
         column: usize,
@@ -62,15 +66,15 @@ impl std::error::Error for Error {}
 
 // ----------------------------------------------------------------------------
 impl From<std::io::Error> for Error {
-    fn from(_: std::io::Error) -> Self {
-        Error::FileIo
+    fn from(err: std::io::Error) -> Self {
+        Error::FileIo { err }
     }
 }
 
 // ----------------------------------------------------------------------------
 impl From<std::num::ParseIntError> for Error {
-    fn from(_: std::num::ParseIntError) -> Self {
-        Error::ParseInt
+    fn from(err: std::num::ParseIntError) -> Self {
+        Error::ParseInt { err }
     }
 }
 
