@@ -156,15 +156,14 @@ impl Canvas {
         delete_mesh(&self.gl, mesh);
     }
 
-    pub fn update_objects(&mut self, objects: Vec<GlObject>) {
+    pub fn update(
+        &mut self,
+        objects: Vec<GlObject>,
+        materials: Vec<GlMaterial>,
+        meshes: Vec<GlMesh>,
+    ) {
         self.objects = objects;
-    }
-
-    pub fn update_materials(&mut self, materials: Vec<GlMaterial>) {
         self.materials = materials;
-    }
-
-    pub fn update_meshes(&mut self, meshes: Vec<GlMesh>) {
         self.meshes = meshes;
     }
 

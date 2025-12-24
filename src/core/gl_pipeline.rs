@@ -6,6 +6,24 @@ use crate::v2d::m4x4::M4x4;
 use std::rc::Rc;
 
 // ----------------------------------------------------------------------------
+pub enum GlPipelineType {
+    RGBATex = 0,
+    YUVTex = 1,
+    MSDFTex = 2,
+}
+
+// ----------------------------------------------------------------------------
+impl From<GlPipelineType> for usize {
+    fn from(p: GlPipelineType) -> Self {
+        match p {
+            GlPipelineType::RGBATex => 0,
+            GlPipelineType::YUVTex => 1,
+            GlPipelineType::MSDFTex => 2,
+        }
+    }
+}
+
+// ----------------------------------------------------------------------------
 pub struct GlUniforms {
     pub model: M4x4,
     pub camera: M4x4,
