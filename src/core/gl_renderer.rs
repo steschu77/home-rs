@@ -24,36 +24,10 @@ const FS_TEXTURE: &str = r#"
 #version 300 es
 in mediump vec2 TexCoord;
 out mediump vec4 FragColor;
-uniform mediump sampler2D texture1;
-mediump float rand(mediump vec2 n) {
-    return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
-}
-void main() {
-    mediump float n0 = rand( TexCoord.st) - 0.5;
-    mediump float n1 = rand(-TexCoord.ts) - 0.5;
-    //vec2 noise = 0.05 * vec2(n0*n0, n1*n1);
-    mediump vec2 noise = vec2(0.0);
-    FragColor = texture(texture1, TexCoord.st + noise);
-}"#;
+uniform mediump sampler2D screen;
 
-// --------------------------------------------------------------------------------
-const VS_COLOR: &str = r#"
-#version 300 es
-layout (location = 0) in vec2 aPosition;
-layout (location = 1) in vec3 aColor;
-out vec3 vertexColor;
 void main() {
-    gl_Position = vec4(aPosition, 0.0, 1.0);
-    vertexColor = aColor;
-}"#;
-
-// --------------------------------------------------------------------------------
-const FS_COLOR: &str = r#"
-#version 300 es
-in mediump vec3 vertexColor;
-out mediump vec4 FragColor;
-void main() {
-    FragColor = vec4(vertexColor, 1.0);
+    FragColor = texture(screen, TexCoord.st);
 }"#;
 
 // --------------------------------------------------------------------------------
@@ -73,8 +47,8 @@ impl Renderer {
         print_opengl_info(&gl);
 
         let texture_vao = create_texture_vao(&gl);
-        let texture_program = create_program(&gl, "texture", VS_TEXTURE, FS_TEXTURE).unwrap();
-        let (fbo, color_tex, depth_tex) = create_framebuffer(&gl, 800, 600);
+        let texture_program = create_program(&gl, "texture", VS_TEXTURE, FS_TEXTURE)?;
+        let (fbo, color_tex, depth_tex) = create_framebuffer(&gl, 800, 600)?;
 
         let rgb_pipe = Box::new(v_pos_tex::Pipeline::new(Rc::clone(&gl))?);
         let yuv_pipe = Box::new(v_yuv_tex::Pipeline::new(Rc::clone(&gl))?);

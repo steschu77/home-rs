@@ -26,7 +26,7 @@ impl Layouter {
     pub fn new(canvas: Canvas) -> Result<Self> {
         let mut canvas = canvas;
         let font = Font::load(std::path::Path::new("assets/fonts/roboto.png"))?;
-        let font_texture = canvas.create_texture(font.width, font.height, 0, &font.data);
+        let font_texture = canvas.create_texture(font.width, font.height, 0, &font.data)?;
 
         let verts = create_plane_mesh();
         let quad_mesh = canvas.create_mesh(&verts)?;
@@ -57,7 +57,7 @@ impl Layouter {
             &frame.ybuf,
             &frame.ubuf,
             &frame.vbuf,
-        );
+        )?;
 
         let material_id = self.insert_material(material);
 

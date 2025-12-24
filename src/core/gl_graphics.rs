@@ -8,10 +8,25 @@ pub fn print_opengl_info(gl: &gl::OpenGlFunctions) {
         let version = std::ffi::CStr::from_ptr(gl.GetString(gl::VERSION) as *const _).to_str();
         let vendor = std::ffi::CStr::from_ptr(gl.GetString(gl::VENDOR) as *const _).to_str();
         let renderer = std::ffi::CStr::from_ptr(gl.GetString(gl::RENDERER) as *const _).to_str();
+        let mut max_size = 0;
+        gl.GetIntegerv(gl::MAX_TEXTURE_SIZE, &mut max_size);
 
         println!("OpenGL Version:  {}", version.unwrap_or("<error>"));
         println!("OpenGL Vendor:   {}", vendor.unwrap_or("<error>"));
         println!("OpenGL Renderer: {}", renderer.unwrap_or("<error>"));
+        println!("OpenGL Max Texture Size: {max_size}");
+    }
+}
+
+// --------------------------------------------------------------------------------
+pub fn check_gl_error(gl: &gl::OpenGlFunctions) -> Result<()> {
+    unsafe {
+        let error = gl.GetError();
+        match error {
+            0 => Ok(()),
+            gl::OUT_OF_MEMORY => Err(Error::GpuOutOfMemory),
+            _ => Err(Error::OpenGl { code: error }),
+        }
     }
 }
 
@@ -157,27 +172,6 @@ pub fn create_vertex_array(gl: &gl::OpenGlFunctions) -> gl::GLuint {
 }
 
 // --------------------------------------------------------------------------------
-pub fn create_color_vao(gl: &gl::OpenGlFunctions) -> gl::GLuint {
-    unsafe {
-        let mut vao = 0;
-        gl.GenVertexArrays(1, &mut vao);
-        gl.BindVertexArray(vao);
-
-        let verts = vec![-1.0, -1.0, -0.5, -1.0, -1.0, -0.5];
-        let colors = vec![1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
-        create_vertex_buffer(gl, &verts);
-        gl.EnableVertexAttribArray(0); // position
-        gl.VertexAttribPointer(0, 2, gl::FLOAT, gl::FALSE, 0, std::ptr::null());
-
-        create_vertex_buffer(gl, &colors);
-        gl.EnableVertexAttribArray(1); // color
-        gl.VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, 0, std::ptr::null());
-
-        vao
-    }
-}
-
-// --------------------------------------------------------------------------------
 pub fn create_texture_vao(gl: &gl::OpenGlFunctions) -> gl::GLuint {
     unsafe {
         let mut vao = 0;
@@ -215,31 +209,52 @@ pub fn create_texture(
     data: &[u8],
     filter: GLint,
     wrap: GLint,
-) -> GLuint {
-    const INTERNAL: [gl::GLint; 3] = [gl::RGBA8, gl::RGB8, gl::R8];
-    const FORMAT: [gl::GLenum; 3] = [gl::RGBA, gl::RGB, gl::RED];
-
+) -> Result<GLuint> {
+    let mut max_size = 0;
     unsafe {
-        let mut texture = 0;
+        gl.GetIntegerv(gl::MAX_TEXTURE_SIZE, &mut max_size);
+    }
+
+    let width = check_texture_size(width, max_size)?;
+    let height = check_texture_size(height, max_size)?;
+
+    const INTERNAL_FMT: [(gl::GLint, gl::GLenum); 3] = [
+        (gl::RGBA8, gl::RGBA),
+        (gl::RGB8, gl::RGB),
+        (gl::R8, gl::RED),
+    ];
+    let Some((internal, format)) = INTERNAL_FMT.get(format) else {
+        return Err(Error::InvalidTextureFormat);
+    };
+
+    let mut texture = 0;
+    unsafe {
         gl.GenTextures(1, &mut texture);
         gl.BindTexture(gl::TEXTURE_2D, texture);
         gl.TexImage2D(
             gl::TEXTURE_2D,
             0,
-            INTERNAL[format],
-            width as i32,
-            height as i32,
+            *internal,
+            width,
+            height,
             0,
-            FORMAT[format],
+            *format,
             gl::UNSIGNED_BYTE,
             data.as_ptr() as *const _,
         );
+
+        if let Err(e) = check_gl_error(gl) {
+            gl.DeleteTextures(1, &texture);
+            return Err(e);
+        }
+
         gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, filter);
         gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, filter);
         gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, wrap);
         gl.TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, wrap);
-        texture
     }
+
+    Ok(texture)
 }
 
 // --------------------------------------------------------------------------------
@@ -247,7 +262,15 @@ pub fn create_framebuffer(
     gl: &gl::OpenGlFunctions,
     width: usize,
     height: usize,
-) -> (gl::GLuint, gl::GLuint, gl::GLuint) {
+) -> Result<(gl::GLuint, gl::GLuint, gl::GLuint)> {
+    let mut max_size = 0;
+    unsafe {
+        gl.GetIntegerv(gl::MAX_TEXTURE_SIZE, &mut max_size);
+    }
+
+    let width = check_texture_size(width, max_size)?;
+    let height = check_texture_size(height, max_size)?;
+
     unsafe {
         let mut fbo = 0;
 
@@ -261,8 +284,8 @@ pub fn create_framebuffer(
             gl::TEXTURE_2D,
             0,
             gl::RGBA8,
-            width as i32,
-            height as i32,
+            width,
+            height,
             0,
             gl::RGB,
             gl::UNSIGNED_BYTE,
@@ -285,9 +308,9 @@ pub fn create_framebuffer(
         gl.TexImage2D(
             gl::TEXTURE_2D,
             0,
-            gl::DEPTH_COMPONENT24 as i32,
-            width as i32,
-            height as i32,
+            gl::DEPTH_COMPONENT24,
+            width,
+            height,
             0,
             gl::DEPTH_COMPONENT,
             gl::FLOAT,
@@ -309,10 +332,13 @@ pub fn create_framebuffer(
 
         let status = gl.CheckFramebufferStatus(gl::FRAMEBUFFER);
         if status != gl::FRAMEBUFFER_COMPLETE {
-            panic!("Framebuffer is not complete");
+            gl.DeleteFramebuffers(1, &fbo);
+            gl.DeleteTextures(1, &color_tex);
+            gl.DeleteTextures(1, &depth_tex);
+            return Err(Error::Framebuffer { status });
         }
 
-        (fbo, color_tex, depth_tex)
+        Ok((fbo, color_tex, depth_tex))
     }
 }
 
@@ -327,4 +353,14 @@ pub fn get_uniform_location(
     (location != -1)
         .then_some(location)
         .ok_or(Error::InvalidLocation)
+}
+
+// --------------------------------------------------------------------------------
+fn check_texture_size(size: usize, max_size: i32) -> Result<i32> {
+    let size = size.try_into().map_err(|_| Error::InvalidTextureSize)?;
+    if size == 0 || size > max_size {
+        Err(Error::InvalidTextureSize)
+    } else {
+        Ok(size)
+    }
 }
