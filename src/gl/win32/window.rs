@@ -49,8 +49,8 @@ impl<T: IWindow> WindowProc<T> {
     ) -> Result<HWND> {
         let title = title.encode_utf16().chain(Some(0)).collect::<Vec<_>>();
         let class_name = class_name.encode_utf16().chain(Some(0)).collect::<Vec<_>>();
-        let h_instance = unsafe { GetModuleHandleW(None)? };
-        let h_cursor = unsafe { LoadCursorW(None, IDC_ARROW)? };
+        let h_instance = unsafe { GetModuleHandleW(None) }?;
+        let h_cursor = unsafe { LoadCursorW(None, IDC_ARROW) }?;
         let hbr_background = unsafe { HBRUSH(GetStockObject(NULL_BRUSH).0) };
 
         let wc = WNDCLASSW {
