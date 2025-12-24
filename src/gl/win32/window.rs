@@ -117,10 +117,8 @@ impl<T: IWindow> WindowProc<T> {
             }
 
             let ptr = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut WindowProc<T>;
-            if ptr.is_null() {
-                DefWindowProcW(hwnd, msg, wparam, lparam)
-            } else {
-                let result = ptr.as_mut().unwrap().handle_msg(msg, wparam, lparam);
+            if let Some(data) = ptr.as_mut() {
+                let result = data.handle_msg(msg, wparam, lparam);
 
                 if msg == WM_NCDESTROY {
                     // remove the object from the window and delete it
@@ -130,6 +128,8 @@ impl<T: IWindow> WindowProc<T> {
                     drop(window); // make it obivous that the window is being deleted
                 }
                 result
+            } else {
+                DefWindowProcW(hwnd, msg, wparam, lparam)
             }
         }
     }
