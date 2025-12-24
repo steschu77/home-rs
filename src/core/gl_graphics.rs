@@ -5,19 +5,13 @@ use std::ffi::CString;
 // --------------------------------------------------------------------------------
 pub fn print_opengl_info(gl: &gl::OpenGlFunctions) {
     unsafe {
-        let version = std::ffi::CStr::from_ptr(gl.GetString(gl::VERSION) as *const _)
-            .to_str()
-            .unwrap_or_default();
-        let vendor = std::ffi::CStr::from_ptr(gl.GetString(gl::VENDOR) as *const _)
-            .to_str()
-            .unwrap_or_default();
-        let renderer = std::ffi::CStr::from_ptr(gl.GetString(gl::RENDERER) as *const _)
-            .to_str()
-            .unwrap_or_default();
+        let version = std::ffi::CStr::from_ptr(gl.GetString(gl::VERSION) as *const _).to_str();
+        let vendor = std::ffi::CStr::from_ptr(gl.GetString(gl::VENDOR) as *const _).to_str();
+        let renderer = std::ffi::CStr::from_ptr(gl.GetString(gl::RENDERER) as *const _).to_str();
 
-        println!("OpenGL Version: {version}");
-        println!("Vendor: {vendor}");
-        println!("Renderer: {renderer}");
+        println!("OpenGL Version:  {}", version.unwrap_or("<error>"));
+        println!("OpenGL Vendor:   {}", vendor.unwrap_or("<error>"));
+        println!("OpenGL Renderer: {}", renderer.unwrap_or("<error>"));
     }
 }
 
