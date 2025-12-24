@@ -104,7 +104,7 @@ impl Canvas {
         height: usize,
         format: usize,
         data: &[u8],
-    ) -> GlMaterial {
+    ) -> Result<GlMaterial> {
         let id = gl_graphics::create_texture(
             &self.gl,
             width,
@@ -113,8 +113,8 @@ impl Canvas {
             data,
             gl::LINEAR,
             gl::CLAMP_TO_EDGE,
-        );
-        GlMaterial::Texture(id)
+        )?;
+        Ok(GlMaterial::Texture(id))
     }
 
     // ------------------------------------------------------------------------
@@ -126,17 +126,17 @@ impl Canvas {
         luma: &[u8],
         cb: &[u8],
         cr: &[u8],
-    ) -> GlMaterial {
+    ) -> Result<GlMaterial> {
         let filter = gl::LINEAR;
         let wrap = gl::CLAMP_TO_EDGE;
         let id_luma =
-            gl_graphics::create_texture(&self.gl, width, height, format, luma, filter, wrap);
+            gl_graphics::create_texture(&self.gl, width, height, format, luma, filter, wrap)?;
         let id_cb =
-            gl_graphics::create_texture(&self.gl, width / 2, height / 2, format, cb, filter, wrap);
+            gl_graphics::create_texture(&self.gl, width / 2, height / 2, format, cb, filter, wrap)?;
         let id_cr =
-            gl_graphics::create_texture(&self.gl, width / 2, height / 2, format, cr, filter, wrap);
+            gl_graphics::create_texture(&self.gl, width / 2, height / 2, format, cr, filter, wrap)?;
 
-        GlMaterial::YuvTexture(id_luma, id_cb, id_cr)
+        Ok(GlMaterial::YuvTexture(id_luma, id_cb, id_cr))
     }
 
     // ------------------------------------------------------------------------

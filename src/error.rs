@@ -15,6 +15,8 @@ pub enum Error {
     InvalidCString,
     InvalidLocation,
     InvalidColorFormat,
+    InvalidTextureSize,
+    InvalidTextureFormat,
     OpenGlLoad {
         name: String,
     },
@@ -22,6 +24,13 @@ pub enum Error {
         name: String,
         log: String,
     },
+    OpenGl {
+        code: u32,
+    },
+    Framebuffer {
+        status: u32,
+    },
+    GpuOutOfMemory,
     FileNotFound {
         path: PathBuf,
     },
