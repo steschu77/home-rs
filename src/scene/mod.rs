@@ -101,7 +101,8 @@ pub struct Rect {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Handle {
-    pub id: usize,
+    pub material_id: Option<usize>,
+    pub mesh_id: Option<usize>,
     pub aspect_ratio: f32,
 }
 

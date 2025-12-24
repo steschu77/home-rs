@@ -1,4 +1,5 @@
 use crate::core::gl_canvas::{Canvas, GlMaterial, GlMesh, GlObject, Vertex};
+use crate::core::gl_pipeline::GlPipelineType;
 use crate::error::Result;
 use crate::scene::photo;
 use crate::scene::{
@@ -11,45 +12,38 @@ use crate::v2d::v2::V2;
 // ----------------------------------------------------------------------------
 pub struct Layouter {
     canvas: Canvas,
-    resources: Vec<Handle>,
     font: Font,
-    current: Layout,
-    objects: Vec<GlObject>,
     materials: Vec<Option<GlMaterial>>,
-    free_ids: Vec<usize>,
     meshes: Vec<Option<GlMesh>>,
+    free_material_ids: Vec<usize>,
     free_mesh_ids: Vec<usize>,
-}
-
-// ----------------------------------------------------------------------------
-#[derive(Clone)]
-pub struct LayoutItem {
-    pub object_id: usize,
-    pub material_id: usize,
+    font_texture: GlMaterial,
+    quad_mesh: GlMesh,
 }
 
 impl Layouter {
+    // ------------------------------------------------------------------------
     pub fn new(canvas: Canvas) -> Result<Self> {
         let mut canvas = canvas;
         let font = Font::load(std::path::Path::new("assets/fonts/roboto.png"))?;
-        let material = canvas.create_texture(font.width, font.height, 0, &font.data);
+        let font_texture = canvas.create_texture(font.width, font.height, 0, &font.data);
 
         let verts = create_plane_mesh();
-        let quad = canvas.create_mesh(&verts)?;
+        let quad_mesh = canvas.create_mesh(&verts)?;
 
         Ok(Self {
             canvas,
-            resources: Vec::new(),
             font,
-            current: Layout::empty(),
-            objects: Vec::new(),
-            materials: vec![Some(material)],
-            free_ids: Vec::new(),
-            meshes: vec![Some(quad)],
+            materials: Vec::new(),
+            meshes: Vec::new(),
+            free_material_ids: Vec::new(),
             free_mesh_ids: Vec::new(),
+            font_texture,
+            quad_mesh,
         })
     }
 
+    // ------------------------------------------------------------------------
     pub fn load_photo(&mut self, photo: &Photo) -> Result<Handle> {
         let contents = std::fs::read(&photo.path)?;
         let frame = miniwebp::read_image(&contents)?;
@@ -65,30 +59,42 @@ impl Layouter {
             &frame.vbuf,
         );
 
-        let id = self.insert_material(material);
+        let material_id = self.insert_material(material);
 
         log::info!(
-            "Loaded photo {:?} as texture {} ({}x{})",
+            "Loaded photo {:?} as texture {material_id} ({}x{})",
             photo.path,
-            id,
             tx_width,
             tx_height
         );
 
         Ok(Handle {
-            id,
+            material_id: Some(material_id),
+            mesh_id: None,
             aspect_ratio: tx_width as f32 / tx_height as f32,
         })
     }
 
+    // ------------------------------------------------------------------------
     pub fn free_handle(&mut self, handle: Handle) {
-        if let Some(material) = &self.materials[handle.id] {
+        if let Some(id) = handle.material_id
+            && let Some(material) = self.materials.get(id).and_then(|m| m.as_ref())
+        {
             self.canvas.delete_material(material);
-            self.materials[handle.id] = None;
-            self.free_ids.push(handle.id);
+            self.materials[id] = None;
+            self.free_material_ids.push(id);
+        }
+
+        if let Some(id) = handle.mesh_id
+            && let Some(mesh) = self.meshes.get(id).and_then(|m| m.as_ref())
+        {
+            self.canvas.delete_mesh(mesh);
+            self.meshes[id] = None;
+            self.free_mesh_ids.push(id);
         }
     }
 
+    // ------------------------------------------------------------------------
     pub fn create_text(&mut self, text: &str) -> Result<Handle> {
         let mut iter = text.as_bytes().iter();
         let mut pos = V2::new([0.0, 0.0]);
@@ -100,10 +106,10 @@ impl Layouter {
         }
 
         let mesh = self.canvas.create_mesh(&verts)?;
-        let id = self.insert_mesh(mesh.clone());
+        let mesh_id = self.insert_mesh(mesh.clone());
 
         log::info!(
-            "Created text mesh '{}' as id {id}, vao/vbo {}/{} ({} vertices)",
+            "Created text mesh '{}' as id {mesh_id}, vao/vbo {}/{} ({} vertices)",
             text,
             mesh.vao,
             mesh.vbo,
@@ -111,41 +117,32 @@ impl Layouter {
         );
 
         Ok(Handle {
-            id,
+            material_id: None,
+            mesh_id: Some(mesh_id),
             aspect_ratio: 0.0,
         })
     }
 
-    pub fn free_text(&mut self, handle: Handle) {
-        if let Some(mesh) = &self.meshes[handle.id] {
-            self.canvas.delete_mesh(mesh);
-            self.meshes[handle.id] = None;
-            self.free_mesh_ids.push(handle.id);
-        }
-    }
-
+    // ------------------------------------------------------------------------
     pub fn update_layout(&mut self, layout: &Layout) {
         let mut objects = Vec::new();
-        // Keep font material at index 0
-        let mut materials = vec![self.materials[0].clone().unwrap()];
-        let meshes = self
-            .meshes
-            .iter()
-            .filter_map(|m| m.clone())
-            .collect::<Vec<GlMesh>>();
 
-        log::info!("Updating layout with {:?} items", layout.items);
+        let mut materials = vec![self.font_texture.clone()];
+        let font_material_id = 0;
+
+        let mut meshes = vec![self.quad_mesh.clone()];
+        let quad_mesh_id = 0;
 
         for item in &layout.items {
             match &item.element {
                 Element::Picture(picture) => {
-                    if let Some(material) = &self.materials[picture.handle.id] {
+                    if let Some(material) = self.get_material(&picture.handle) {
                         let material_id = materials.len();
                         materials.push(material.clone());
 
                         let object = GlObject {
-                            mesh_id: 0,     // Use a plane mesh
-                            pipeline_id: 1, // Use YUV pipeline
+                            mesh_id: quad_mesh_id,
+                            pipeline_id: GlPipelineType::YUVTex.into(),
                             material_id,
                             transform: photo::transform(&picture.dst),
                         };
@@ -153,21 +150,23 @@ impl Layouter {
                     }
                 }
                 Element::Text(text) => {
-                    let object = GlObject {
-                        mesh_id: text.handle.id,
-                        pipeline_id: 2, // Use MSDF pipeline
-                        material_id: 0, // Use font material
-                        transform: photo::transform(&text.dst),
-                    };
-                    objects.push(object);
+                    if let Some(mesh) = self.get_mesh(&text.handle) {
+                        let mesh_id = meshes.len();
+                        meshes.push(mesh.clone());
+                        let object = GlObject {
+                            mesh_id,
+                            pipeline_id: GlPipelineType::MSDFTex.into(),
+                            material_id: font_material_id,
+                            transform: photo::transform(&text.dst),
+                        };
+                        objects.push(object);
+                    }
                 }
                 _ => {} // Unsupported element types
             }
         }
 
-        self.canvas.update_objects(objects);
-        self.canvas.update_materials(materials);
-        self.canvas.update_meshes(meshes);
+        self.canvas.update(objects, materials, meshes);
     }
 
     pub fn canvas(&self) -> &Canvas {
@@ -183,7 +182,7 @@ impl Layouter {
     }
 
     fn insert_material(&mut self, material: GlMaterial) -> usize {
-        if let Some(id) = self.free_ids.pop() {
+        if let Some(id) = self.free_material_ids.pop() {
             assert!(id < self.materials.len());
             assert!(self.materials[id].is_none());
             self.materials[id] = Some(material);
@@ -191,6 +190,14 @@ impl Layouter {
         } else {
             self.materials.push(Some(material));
             self.materials.len() - 1
+        }
+    }
+
+    fn get_material(&self, handle: &Handle) -> Option<&GlMaterial> {
+        if let Some(material_id) = handle.material_id {
+            self.materials.get(material_id).and_then(|m| m.as_ref())
+        } else {
+            None
         }
     }
 
@@ -203,6 +210,14 @@ impl Layouter {
         } else {
             self.meshes.push(Some(mesh));
             self.meshes.len() - 1
+        }
+    }
+
+    fn get_mesh(&self, handle: &Handle) -> Option<&GlMesh> {
+        if let Some(mesh_id) = handle.mesh_id {
+            self.meshes.get(mesh_id).and_then(|m| m.as_ref())
+        } else {
+            None
         }
     }
 

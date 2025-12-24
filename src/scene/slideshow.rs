@@ -44,14 +44,12 @@ impl SlideShowScene {
         }
 
         if let Some(handle) = self.photo_handle {
-            log::info!("Freeing previous photo handle: {:?}", handle.id);
             layouter.free_handle(handle);
             self.photo_handle = None;
         }
 
         if let Some(handle) = self.text_handle {
-            log::info!("Freeing previous text handle: {:?}", handle.id);
-            layouter.free_text(handle);
+            layouter.free_handle(handle);
             self.text_handle = None;
         }
 
