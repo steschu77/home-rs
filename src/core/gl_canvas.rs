@@ -141,8 +141,16 @@ impl Canvas {
 
     // ------------------------------------------------------------------------
     pub fn delete_material(&mut self, material: &GlMaterial) {
-        if let GlMaterial::Texture(id) = material {
-            gl_graphics::delete_texture(&self.gl, *id);
+        match material {
+            GlMaterial::Texture(id) => {
+                gl_graphics::delete_texture(&self.gl, *id);
+            }
+            GlMaterial::YuvTexture(id_luma, id_cb, id_cr) => {
+                gl_graphics::delete_texture(&self.gl, *id_luma);
+                gl_graphics::delete_texture(&self.gl, *id_cb);
+                gl_graphics::delete_texture(&self.gl, *id_cr);
+            }
+            _ => {}
         }
     }
 
