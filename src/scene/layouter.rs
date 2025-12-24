@@ -101,8 +101,80 @@ impl Layouter {
         let mut verts = Vec::new();
         while let Some(ch) = next_code_point(&mut iter) {
             if let Some(glyph) = self.font.glyphs.get(&ch) {
-                Self::add_glyph(glyph, &mut pos, &mut verts);
+                Self::add_glyph(glyph, &pos, &mut verts);
+                pos += V2::new([glyph.advance, 0.0]);
             }
+        }
+
+        let mesh = self.canvas.create_mesh(&verts)?;
+        let mesh_id = self.insert_mesh(mesh.clone());
+
+        log::info!(
+            "Created text mesh '{}' as id {mesh_id}, vao/vbo {}/{} ({} vertices)",
+            text,
+            mesh.vao,
+            mesh.vbo,
+            verts.len()
+        );
+
+        Ok(Handle {
+            material_id: None,
+            mesh_id: Some(mesh_id),
+            aspect_ratio: 0.0,
+        })
+    }
+
+    // ------------------------------------------------------------------------
+    pub fn create_multiline_text(&mut self, text: &str, max_width: f32) -> Result<Handle> {
+        let mut lines = Vec::new();
+        let mut line = Vec::new();
+        let mut line_width = 0.0;
+
+        let space_width = self.font.glyphs.get(&32).map_or(0.0, |g| g.advance);
+        let line_height = self.font.meta.line_height;
+
+        let words = text.split_whitespace();
+        for word in words {
+            let mut iter = word.as_bytes().iter();
+            let mut word_width = 0.0;
+            while let Some(ch) = next_code_point(&mut iter) {
+                if let Some(glyph) = self.font.glyphs.get(&ch) {
+                    word_width += glyph.advance;
+                }
+            }
+
+            line_width += word_width;
+            if line_width > max_width {
+                lines.push(line);
+                line = Vec::new();
+                line_width = word_width;
+            } else {
+                line_width += space_width;
+            }
+
+            line.push(word.to_string());
+        }
+
+        if !line.is_empty() {
+            lines.push(line);
+        }
+
+        let line_count = lines.len() as f32;
+
+        let mut verts = Vec::new();
+        let mut pos = V2::new([0.0, (line_count - 1.0) * line_height]);
+        for line in lines {
+            for word in line {
+                let mut iter = word.as_bytes().iter();
+                while let Some(ch) = next_code_point(&mut iter) {
+                    if let Some(glyph) = self.font.glyphs.get(&ch) {
+                        Self::add_glyph(glyph, &pos, &mut verts);
+                        pos += V2::new([glyph.advance, 0.0]);
+                    }
+                }
+                pos += V2::new([space_width, 0.0]);
+            }
+            pos = V2::new([0.0, pos.x1() - line_height]);
         }
 
         let mesh = self.canvas.create_mesh(&verts)?;
@@ -221,7 +293,7 @@ impl Layouter {
         }
     }
 
-    fn add_glyph(glyph: &FontGlyph, pos: &mut V2, verts: &mut Vec<Vertex>) {
+    fn add_glyph(glyph: &FontGlyph, pos: &V2, verts: &mut Vec<Vertex>) {
         let uv_u = glyph.uv[0];
         let uv_v = 1.0 - glyph.uv[3];
         let uv_width = glyph.uv[2] - glyph.uv[0];
@@ -245,8 +317,6 @@ impl Layouter {
             xy_size.x0(),
             xy_size.x1(),
         );
-
-        *pos += V2::new([glyph.advance, 0.0]);
     }
 }
 
