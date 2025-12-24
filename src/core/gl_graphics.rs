@@ -7,13 +7,13 @@ pub fn print_opengl_info(gl: &gl::OpenGlFunctions) {
     unsafe {
         let version = std::ffi::CStr::from_ptr(gl.GetString(gl::VERSION) as *const _)
             .to_str()
-            .unwrap();
+            .unwrap_or_default();
         let vendor = std::ffi::CStr::from_ptr(gl.GetString(gl::VENDOR) as *const _)
             .to_str()
-            .unwrap();
+            .unwrap_or_default();
         let renderer = std::ffi::CStr::from_ptr(gl.GetString(gl::RENDERER) as *const _)
             .to_str()
-            .unwrap();
+            .unwrap_or_default();
 
         println!("OpenGL Version: {version}");
         println!("Vendor: {vendor}");
