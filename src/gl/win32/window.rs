@@ -49,12 +49,13 @@ impl<T: IWindow> WindowProc<T> {
     ) -> Result<HWND> {
         let title = title.encode_utf16().chain(Some(0)).collect::<Vec<_>>();
         let class_name = class_name.encode_utf16().chain(Some(0)).collect::<Vec<_>>();
-
-        let h_instance = unsafe { GetModuleHandleW(None).unwrap() };
+        let h_instance = unsafe { GetModuleHandleW(None)? };
+        let h_cursor = unsafe { LoadCursorW(None, IDC_ARROW)? };
+        let hbr_background = unsafe { HBRUSH(GetStockObject(NULL_BRUSH).0) };
 
         let wc = WNDCLASSW {
-            hCursor: unsafe { LoadCursorW(None, IDC_ARROW).ok().unwrap() },
-            hbrBackground: unsafe { HBRUSH(GetStockObject(NULL_BRUSH).0) },
+            hCursor: h_cursor,
+            hbrBackground: hbr_background,
             hInstance: h_instance.into(),
             lpszClassName: PCWSTR(class_name.as_ptr()),
             style: CS_OWNDC,
