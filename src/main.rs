@@ -252,7 +252,7 @@ mod linux {
     use crate::app::App;
     use crate::core::app_loop::AppLoop;
     use crate::core::clock::Clock;
-    use crate::core::input;
+    use crate::core::input::{self, Event, Key};
     use crate::gl::linux::LinuxGLContext;
 
     pub fn main() -> Result<()> {
@@ -285,22 +285,51 @@ mod linux {
         let mut input = input::Input::new();
 
         loop {
-            unsafe {
-                let mut event: x11::xlib::XEvent = std::mem::zeroed();
-                x11::xlib::XNextEvent(display, &mut event);
-                match event.type_ {
+            while unsafe { x11::xlib::XPending(display) } > 0 {
+                let mut event: x11::xlib::XEvent = unsafe { std::mem::zeroed() };
+                unsafe { x11::xlib::XNextEvent(display, &mut event) };
+                    
+                match unsafe { event.type_ } {
                     x11::xlib::Expose => {
-                        app_loop.step(&mut app, &clock, &mut input)?;
-                        context.swap_buffers();
                     }
-                    x11::xlib::KeyPress => break,
-                    _ => (),
+                    x11::xlib::KeyPress => {
+                        let key_event = unsafe { event.key };
+                        if let Some(key) = xkey_to_key(key_event.keycode) {
+                            input.add_event(Event::KeyDown{ key });
+                        }
+                    }
+                    x11::xlib::ClientMessage => {
+                        unsafe {
+                            x11::xlib::XDestroyWindow(display, win);
+                            x11::xlib::XCloseDisplay(display);
+                        }
+                        return Ok(());
+                    }
+                    _ => {}
                 }
             }
+            
+            if let Err(e) = app_loop.step(&mut app, &clock, &mut input) {
+                unsafe {
+                    x11::xlib::XDestroyWindow(display, win);
+                    x11::xlib::XCloseDisplay(display);
+                }
+                return Ok(());
+            }
+            
+            context.swap_buffers();
         }
-        
-        Ok(())
     }
+    
+    fn xkey_to_key(keycode: u32) -> Option<Key> {
+        match keycode {
+            9 => Some(Key::Exit),        // ESC
+            110 => Some(Key::Home),      // Home
+            113 => Some(Key::PrevScene), // Left arrow
+            114 => Some(Key::NextScene), // Right arrow
+            _ => None,
+        }
+    }    
 }
 
 use crate::app::AppConfig;
