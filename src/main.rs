@@ -329,7 +329,7 @@ mod linux {
             114 => Some(Key::NextScene), // Right arrow
             _ => None,
         }
-    }    
+    }
 }
 
 use crate::app::AppConfig;
