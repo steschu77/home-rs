@@ -294,16 +294,9 @@ mod linux {
                     x11::xlib::KeyPress => {
                         let keysym =
                             unsafe { x11::xlib::XLookupKeysym(&mut event.key as *mut _, 0) };
-                        if let Some(key) = xkey_to_key(keysym as u64) {
+                        if let Some(key) = xkey_to_key(keysym as u32) {
                             input.add_event(Event::KeyDown { key });
                         }
-                    }
-                    x11::xlib::ClientMessage => {
-                        unsafe {
-                            x11::xlib::XDestroyWindow(display, win);
-                            x11::xlib::XCloseDisplay(display);
-                        }
-                        return Ok(());
                     }
                     _ => {}
                 }
@@ -322,10 +315,10 @@ mod linux {
         }
     }
 
-    fn xkey_to_key(keysym: u64) -> Option<Key> {
+    fn xkey_to_key(keysym: u32) -> Option<Key> {
         use x11::keysym::{XK_Escape, XK_Home, XK_Left, XK_Right};
         // X11 KeySym values fit in u32 despite XLookupKeysym returning u64
-        match keysym as u32 {
+        match keysym {
             XK_Escape => Some(Key::Exit),
             XK_Home => Some(Key::Home),
             XK_Left => Some(Key::PrevScene),

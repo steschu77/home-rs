@@ -1,5 +1,5 @@
-use crate::error::Result;
 use super::opengl::*;
+use crate::error::Result;
 use x11::xlib::*;
 
 pub struct LinuxGLContext {
@@ -15,21 +15,21 @@ impl LinuxGLContext {
         window: Window,
     ) -> Result<Self> {
         unsafe {
-        let mut attribs = [
-            x11::glx::GLX_RGBA,
-            x11::glx::GLX_DOUBLEBUFFER,
-            x11::glx::GLX_DEPTH_SIZE,
-            24,
-            0,
-        ];
-        let visual_info = x11::glx::glXChooseVisual(display, screen, attribs.as_mut_ptr());
-        let context = x11::glx::glXCreateContext(display, visual_info, std::ptr::null_mut(), 1);
-        x11::glx::glXMakeCurrent(display, window, context);
-        Ok(Self {
-            display,
-            window,
-            context,
-        })
+            let mut attribs = [
+                x11::glx::GLX_RGBA,
+                x11::glx::GLX_DOUBLEBUFFER,
+                x11::glx::GLX_DEPTH_SIZE,
+                24,
+                0,
+            ];
+            let visual_info = x11::glx::glXChooseVisual(display, screen, attribs.as_mut_ptr());
+            let context = x11::glx::glXCreateContext(display, visual_info, std::ptr::null_mut(), 1);
+            x11::glx::glXMakeCurrent(display, window, context);
+            Ok(Self {
+                display,
+                window,
+                context,
+            })
         }
     }
 
