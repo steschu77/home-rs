@@ -295,7 +295,7 @@ mod linux {
                     x11::xlib::KeyPress => {
                         let key_event = unsafe { event.key };
                         if let Some(key) = xkey_to_key(key_event.keycode) {
-                            input.add_event(Event::KeyDown{ key });
+                            input.add_event(Event::KeyDown { key });
                         }
                     }
                     x11::xlib::ClientMessage => {
