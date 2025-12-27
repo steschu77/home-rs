@@ -312,7 +312,7 @@ mod linux {
                     }
                     x11::xlib::ClientMessage => {
                         let xclient = unsafe { event.client_message };
-                        if xclient.data.get_long(0) as u64 == wm_delete_window {
+                        if xclient.data.get_long(0) as x11::xlib::Atom == wm_delete_window {
                             unsafe {
                                 x11::xlib::XDestroyWindow(display, win);
                                 x11::xlib::XCloseDisplay(display);
