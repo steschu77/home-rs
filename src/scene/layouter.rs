@@ -1,6 +1,8 @@
 use crate::core::gl_canvas::{Canvas, GlMaterial, GlMesh, GlObject, Vertex};
 use crate::core::gl_pipeline::GlPipelineType;
 use crate::error::Result;
+use crate::gfx::color_conversion::{ImageGeometry, ycbcr420_to_ycbcr24};
+use crate::gfx::color_format::ColorFormat;
 use crate::scene::photo;
 use crate::scene::{
     Element, Handle, Layout, Photo,
@@ -50,15 +52,14 @@ impl Layouter {
 
         let tx_width = frame.mb_width * 16;
         let tx_height = frame.mb_height * 16;
-        let material = self.canvas.create_yuv_texture(
-            tx_width,
-            tx_height,
-            2,
-            &frame.ybuf,
-            &frame.ubuf,
-            &frame.vbuf,
-        )?;
+        let geo = ImageGeometry {
+            cx: tx_width,
+            cy: tx_height,
+            cf: ColorFormat::YCbCr420,
+        };
+        let yuv24 = ycbcr420_to_ycbcr24(&frame.ybuf, &frame.ubuf, &frame.vbuf, &geo);
 
+        let material = self.canvas.create_texture(tx_width, tx_height, 1, &yuv24)?;
         let material_id = self.insert_material(material);
 
         log::info!(

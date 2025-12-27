@@ -256,9 +256,7 @@ pub mod v_yuv_tex {
         pub uid_model: gl::GLint,
         pub uid_camera: gl::GLint,
         pub uid_mat_id: gl::GLint,
-        pub uid_tex_y: gl::GLint,
-        pub uid_tex_cb: gl::GLint,
-        pub uid_tex_cr: gl::GLint,
+        pub uid_yuv: gl::GLint,
     }
 
     // ----------------------------------------------------------------------------
@@ -273,9 +271,7 @@ pub mod v_yuv_tex {
             let uid_model = gl_graphics::get_uniform_location(&gl, shader, "model").unwrap_or(-1);
             let uid_camera = gl_graphics::get_uniform_location(&gl, shader, "camera").unwrap_or(-1);
             let uid_mat_id = gl_graphics::get_uniform_location(&gl, shader, "mat_id").unwrap_or(-1);
-            let uid_tex_y = gl_graphics::get_uniform_location(&gl, shader, "tex_y").unwrap_or(-1);
-            let uid_tex_cb = gl_graphics::get_uniform_location(&gl, shader, "tex_cb").unwrap_or(-1);
-            let uid_tex_cr = gl_graphics::get_uniform_location(&gl, shader, "tex_cr").unwrap_or(-1);
+            let uid_yuv = gl_graphics::get_uniform_location(&gl, shader, "yuv_tex").unwrap_or(-1);
 
             Ok(Pipeline {
                 gl,
@@ -283,9 +279,7 @@ pub mod v_yuv_tex {
                 uid_model,
                 uid_camera,
                 uid_mat_id,
-                uid_tex_y,
-                uid_tex_cb,
-                uid_tex_cr,
+                uid_yuv,
             })
         }
     }
@@ -299,10 +293,10 @@ pub mod v_yuv_tex {
             unis: &GlUniforms,
         ) -> Result<()> {
             let gl = &self.gl;
-            let (tex_y, tex_cb, tex_cr) = if let GlMaterial::YuvTexture(y, cb, cr) = material {
-                (*y, *cb, *cr)
+            let tex = if let GlMaterial::Texture(id) = material {
+                *id
             } else {
-                (0, 0, 0)
+                0
             };
             unsafe {
                 gl.UseProgram(self.shader);
@@ -310,15 +304,9 @@ pub mod v_yuv_tex {
                 gl.UniformMatrix4fv(self.uid_model, 1, gl::FALSE, unis.model.as_ptr());
                 gl.UniformMatrix4fv(self.uid_camera, 1, gl::FALSE, unis.camera.as_ptr());
                 gl.Uniform1i(self.uid_mat_id, unis.mat_id);
-                gl.Uniform1i(self.uid_tex_y, 0);
-                gl.Uniform1i(self.uid_tex_cb, 1);
-                gl.Uniform1i(self.uid_tex_cr, 2);
+                gl.Uniform1i(self.uid_yuv, 0);
                 gl.ActiveTexture(gl::TEXTURE0);
-                gl.BindTexture(gl::TEXTURE_2D, tex_y);
-                gl.ActiveTexture(gl::TEXTURE1);
-                gl.BindTexture(gl::TEXTURE_2D, tex_cb);
-                gl.ActiveTexture(gl::TEXTURE2);
-                gl.BindTexture(gl::TEXTURE_2D, tex_cr);
+                gl.BindTexture(gl::TEXTURE_2D, tex);
                 gl.DrawArrays(gl::TRIANGLE_STRIP, 0, bindings.count as gl::GLint);
             }
             Ok(())
@@ -353,18 +341,16 @@ pub mod v_yuv_tex {
     // ----------------------------------------------------------------------------
     const FS_TEXTURE: &str = r#"
     #version 300 es
-    uniform sampler2D tex_y;
-    uniform sampler2D tex_cb;
-    uniform sampler2D tex_cr;
+    uniform sampler2D yuv_tex;
 
     in mediump vec2 v_tex;
     out mediump vec4 FragColor;
 
     void main() {
         mediump vec3 yuv;
-        yuv.x = texture(tex_y, v_tex.st).r;
-        yuv.y = texture(tex_cb, v_tex.st).r - 0.5;
-        yuv.z = texture(tex_cr, v_tex.st).r - 0.5;
+        yuv.x = texture(yuv_tex, v_tex.st).r;
+        yuv.y = texture(yuv_tex, v_tex.st).g - 0.5;
+        yuv.z = texture(yuv_tex, v_tex.st).b - 0.5;
         mediump vec3 rgb;
         rgb.r = yuv.x + 1.402 * yuv.z;
         rgb.g = yuv.x - 0.344 * yuv.y - 0.714 * yuv.z;

@@ -10,11 +10,14 @@ pub fn print_opengl_info(gl: &gl::OpenGlFunctions) {
         let renderer = std::ffi::CStr::from_ptr(gl.GetString(gl::RENDERER) as *const _).to_str();
         let mut max_size = 0;
         gl.GetIntegerv(gl::MAX_TEXTURE_SIZE, &mut max_size);
+        let mut max_units = 0;
+        gl.GetIntegerv(gl::MAX_TEXTURE_UNITS, &mut max_units);
 
         println!("OpenGL Version:  {}", version.unwrap_or("<error>"));
         println!("OpenGL Vendor:   {}", vendor.unwrap_or("<error>"));
         println!("OpenGL Renderer: {}", renderer.unwrap_or("<error>"));
-        println!("OpenGL Max Texture Size: {max_size}");
+        println!("OpenGL Max Texture Size:  {max_size}");
+        println!("OpenGL Max Texture Units: {max_units}");
     }
 }
 
