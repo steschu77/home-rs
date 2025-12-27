@@ -310,6 +310,7 @@ mod linux {
             }
 
             if let Err(e) = app_loop.step(&mut app, &clock, &mut input) {
+                eprintln!("Home loop exited with: {e:?}");
                 unsafe {
                     x11::xlib::XDestroyWindow(display, win);
                     x11::xlib::XCloseDisplay(display);
