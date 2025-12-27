@@ -255,6 +255,8 @@ mod linux {
     use crate::core::input::{self, Event, Key};
     use crate::gl::linux::LinuxGLContext;
 
+    const WM_DELETE_WINDOW_STR: &[u8] = b"WM_DELETE_WINDOW\0";
+
     pub fn main() -> Result<()> {
         let cfg = super::init()?;
 
@@ -270,7 +272,7 @@ mod linux {
         let wm_delete_window = unsafe {
             x11::xlib::XInternAtom(
                 display,
-                b"WM_DELETE_WINDOW\0".as_ptr() as *const i8,
+                WM_DELETE_WINDOW_STR.as_ptr() as *const i8,
                 x11::xlib::False,
             )
         };
@@ -319,9 +321,12 @@ mod linux {
                     }
                     x11::xlib::ClientMessage => {
                         let xclient = unsafe { event.client_message };
-                        // Check if this is a WM_DELETE_WINDOW message by comparing the atom value
-                        // Both Atom (c_ulong) and c_long are typically the same size on X11 platforms
-                        if xclient.data.get_long(0) as x11::xlib::Atom == wm_delete_window {
+                        // WM_DELETE_WINDOW messages have format 32, and the atom is stored
+                        // in data.l[0]. On 64-bit systems c_long is 64-bit but we only need
+                        // the lower 32 bits where the Atom value is stored.
+                        if xclient.format == 32
+                            && (xclient.data.get_long(0) as x11::xlib::Atom) == wm_delete_window
+                        {
                             unsafe {
                                 x11::xlib::XDestroyWindow(display, win);
                                 x11::xlib::XCloseDisplay(display);
