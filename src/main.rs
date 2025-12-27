@@ -322,7 +322,8 @@ mod linux {
     }
 
     fn xkey_to_key(keysym: u64) -> Option<Key> {
-        use x11::keysym::*;
+        use x11::keysym::{XK_Escape, XK_Home, XK_Left, XK_Right};
+        // X11 KeySym values fit in u32 despite XLookupKeysym returning u64
         match keysym as u32 {
             XK_Escape => Some(Key::Exit),
             XK_Home => Some(Key::Home),
