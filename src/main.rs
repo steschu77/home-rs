@@ -276,6 +276,7 @@ mod linux {
         };
         unsafe {
             let protocols = [wm_delete_window];
+            // XSetWMProtocols expects *mut Atom, though it doesn't modify the array
             x11::xlib::XSetWMProtocols(
                 display,
                 win,
@@ -319,7 +320,7 @@ mod linux {
                     x11::xlib::ClientMessage => {
                         let xclient = unsafe { event.client_message };
                         // Check if this is a WM_DELETE_WINDOW message by comparing the atom value
-                        // X11 Atom is c_ulong; get_long(0) returns the message data as long
+                        // Both Atom (c_ulong) and c_long are typically the same size on X11 platforms
                         if xclient.data.get_long(0) as x11::xlib::Atom == wm_delete_window {
                             unsafe {
                                 x11::xlib::XDestroyWindow(display, win);
