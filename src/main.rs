@@ -278,7 +278,8 @@ mod linux {
         };
         unsafe {
             let protocols = [wm_delete_window];
-            // XSetWMProtocols expects *mut Atom, though it doesn't modify the array
+            // XSetWMProtocols requires *mut Atom due to old C API design, but doesn't
+            // actually modify the array. This const-to-mut cast is safe.
             x11::xlib::XSetWMProtocols(
                 display,
                 win,
