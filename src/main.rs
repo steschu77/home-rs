@@ -275,8 +275,8 @@ mod linux {
             )
         };
         unsafe {
-            let mut protocols = [wm_delete_window];
-            x11::xlib::XSetWMProtocols(display, win, protocols.as_mut_ptr(), 1);
+            let protocols = [wm_delete_window];
+            x11::xlib::XSetWMProtocols(display, win, protocols.as_ptr() as *mut _, 1);
         }
 
         unsafe {
