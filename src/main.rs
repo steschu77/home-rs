@@ -248,11 +248,11 @@ mod win32 {
 // ----------------------------------------------------------------------------
 #[cfg(target_os = "linux")]
 mod linux {
-    use crate::error::Result;
     use crate::app::App;
     use crate::core::app_loop::AppLoop;
     use crate::core::clock::Clock;
-    use crate::core::input;
+    use crate::core::input::{self, Event, Key};
+    use crate::error::Result;
     use crate::gl::linux::LinuxGLContext;
 
     pub fn main() -> Result<()> {
@@ -285,21 +285,53 @@ mod linux {
         let mut input = input::Input::new();
 
         loop {
-            unsafe {
-                let mut event: x11::xlib::XEvent = std::mem::zeroed();
-                x11::xlib::XNextEvent(display, &mut event);
-                match event.type_ {
-                    x11::xlib::Expose => {
-                        app_loop.step(&mut app, &clock, &mut input)?;
-                        context.swap_buffers();
+            while unsafe { x11::xlib::XPending(display) } > 0 {
+                let mut event: x11::xlib::XEvent = unsafe { std::mem::zeroed() };
+                unsafe { x11::xlib::XNextEvent(display, &mut event) };
+
+                match unsafe { event.type_ } {
+                    x11::xlib::Expose => {}
+                    x11::xlib::KeyPress => {
+                        let keysym =
+                            unsafe { x11::xlib::XLookupKeysym(&mut event.key as *mut _, 0) };
+                        if let Some(key) = xkey_to_key(keysym as u64) {
+                            input.add_event(Event::KeyDown { key });
+                        }
                     }
-                    x11::xlib::KeyPress => break,
-                    _ => (),
+                    x11::xlib::ClientMessage => {
+                        unsafe {
+                            x11::xlib::XDestroyWindow(display, win);
+                            x11::xlib::XCloseDisplay(display);
+                        }
+                        return Ok(());
+                    }
+                    _ => {}
                 }
             }
+
+            if let Err(e) = app_loop.step(&mut app, &clock, &mut input) {
+                eprintln!("Home loop exited with: {e:?}");
+                unsafe {
+                    x11::xlib::XDestroyWindow(display, win);
+                    x11::xlib::XCloseDisplay(display);
+                }
+                return Ok(());
+            }
+
+            context.swap_buffers();
         }
-        
-        Ok(())
+    }
+
+    fn xkey_to_key(keysym: u64) -> Option<Key> {
+        use x11::keysym::{XK_Escape, XK_Home, XK_Left, XK_Right};
+        // X11 KeySym values fit in u32 despite XLookupKeysym returning u64
+        match keysym as u32 {
+            XK_Escape => Some(Key::Exit),
+            XK_Home => Some(Key::Home),
+            XK_Left => Some(Key::PrevScene),
+            XK_Right => Some(Key::NextScene),
+            _ => None,
+        }
     }
 }
 
