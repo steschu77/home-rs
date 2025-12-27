@@ -1,4 +1,4 @@
-use crate::core::gl_canvas::{Canvas, GlMaterial, GlMesh, GlObject, Vertex};
+use crate::core::gl_canvas::{Canvas, GlMaterial, GlMesh, GlObject, GlTransition, Vertex};
 use crate::core::gl_pipeline::GlPipelineType;
 use crate::error::Result;
 use crate::gfx::color_conversion::{ImageGeometry, ycbcr420_to_ycbcr24};
@@ -199,6 +199,7 @@ impl Layouter {
     // ------------------------------------------------------------------------
     pub fn update_layout(&mut self, layout: &Layout) {
         let mut objects = Vec::new();
+        let mut transitions = Vec::new();
 
         let mut materials = vec![self.font_texture.clone()];
         let font_material_id = 0;
@@ -235,11 +236,32 @@ impl Layouter {
                         objects.push(object);
                     }
                 }
+                Element::Transition(transition) => {
+                    let from = self.get_material(&transition.from);
+                    let to = self.get_material(&transition.to);
+                    if let Some((from, to)) = Option::zip(from, to) {
+                        materials.push(from.clone());
+                        materials.push(to.clone());
+
+                        let transition = GlTransition {
+                            mesh_id: quad_mesh_id,
+                            pipeline_id: 0,
+                            from_id: materials.len() - 2,
+                            to_id: materials.len() - 1,
+                            progress: transition.progress,
+                            from_pos: transition.from_dst.pos,
+                            from_size: transition.from_dst.size,
+                            to_pos: transition.to_dst.pos,
+                            to_size: transition.to_dst.size,
+                        };
+                        transitions.push(transition);
+                    }
+                }
                 _ => {} // Unsupported element types
             }
         }
 
-        self.canvas.update(objects, materials, meshes);
+        self.canvas.update(objects, transitions, materials, meshes);
     }
 
     pub fn canvas(&self) -> &Canvas {

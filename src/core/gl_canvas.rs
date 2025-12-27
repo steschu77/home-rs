@@ -16,6 +16,20 @@ pub struct GlObject {
 
 // ----------------------------------------------------------------------------
 #[derive(Clone, Debug)]
+pub struct GlTransition {
+    pub mesh_id: usize,
+    pub pipeline_id: usize,
+    pub from_id: usize,
+    pub to_id: usize,
+    pub progress: f32,
+    pub from_pos: V2,
+    pub from_size: V2,
+    pub to_pos: V2,
+    pub to_size: V2,
+}
+
+// ----------------------------------------------------------------------------
+#[derive(Clone, Debug)]
 pub enum GlMaterial {
     Color([f32; 4]),
     Texture(gl::GLuint),
@@ -80,6 +94,7 @@ pub struct Canvas {
     aspect_ratio: f32,
     camera: Camera,
     objects: Vec<GlObject>,
+    transitions: Vec<GlTransition>,
     materials: Vec<GlMaterial>,
     meshes: Vec<GlMesh>,
 }
@@ -92,6 +107,7 @@ impl Canvas {
             aspect_ratio,
             camera: Camera::default(),
             objects: Vec::new(),
+            transitions: Vec::new(),
             materials: Vec::new(),
             meshes: Vec::new(),
         })
@@ -167,10 +183,12 @@ impl Canvas {
     pub fn update(
         &mut self,
         objects: Vec<GlObject>,
+        transitions: Vec<GlTransition>,
         materials: Vec<GlMaterial>,
         meshes: Vec<GlMesh>,
     ) {
         self.objects = objects;
+        self.transitions = transitions;
         self.materials = materials;
         self.meshes = meshes;
     }
@@ -189,6 +207,10 @@ impl Canvas {
 
     pub fn objects(&self) -> &[GlObject] {
         &self.objects
+    }
+
+    pub fn transitions(&self) -> &[GlTransition] {
+        &self.transitions
     }
 
     pub fn materials(&self) -> &[GlMaterial] {
