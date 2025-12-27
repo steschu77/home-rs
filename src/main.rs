@@ -276,7 +276,12 @@ mod linux {
         };
         unsafe {
             let protocols = [wm_delete_window];
-            x11::xlib::XSetWMProtocols(display, win, protocols.as_ptr() as *mut _, 1);
+            x11::xlib::XSetWMProtocols(
+                display,
+                win,
+                protocols.as_ptr() as *mut x11::xlib::Atom,
+                1,
+            );
         }
 
         unsafe {
@@ -313,7 +318,8 @@ mod linux {
                     }
                     x11::xlib::ClientMessage => {
                         let xclient = unsafe { event.client_message };
-                        // Safe cast: X11 Atom is c_ulong, and get_long returns the atom value
+                        // Check if this is a WM_DELETE_WINDOW message by comparing the atom value
+                        // X11 Atom is c_ulong; get_long(0) returns the message data as long
                         if xclient.data.get_long(0) as x11::xlib::Atom == wm_delete_window {
                             unsafe {
                                 x11::xlib::XDestroyWindow(display, win);
