@@ -2,10 +2,10 @@ use crate::core::gl_canvas::Canvas;
 use crate::core::gl_graphics::{
     create_framebuffer, create_program, create_texture_vao, print_opengl_info,
 };
-use crate::core::gl_pipeline::{self, GlUniforms, msdf_tex, v_pos_tex, v_yuv_tex};
+use crate::core::gl_pipeline::{self, GlUniforms, msdf_tex, v_pos_tex, v_yuv_tex, yuv_dual};
 use crate::error::Result;
 use crate::gl::opengl as gl;
-use crate::v2d::{affine4x4, m4x4::M4x4};
+use crate::v2d::{affine4x4, m4x4::M4x4, v2::V2};
 use std::rc::Rc;
 
 // --------------------------------------------------------------------------------
@@ -34,6 +34,7 @@ void main() {
 pub struct Renderer {
     gl: Rc<gl::OpenGlFunctions>,
     pipelines: Vec<Box<dyn gl_pipeline::GlPipeline>>,
+    transition_pipelines: Vec<Box<dyn gl_pipeline::GlTransition>>,
     texture_vao: gl::GLuint,
     texture_program: gl::GLuint,
     fbo: gl::GLuint,
@@ -53,10 +54,12 @@ impl Renderer {
         let rgb_pipe = Box::new(v_pos_tex::Pipeline::new(Rc::clone(&gl))?);
         let yuv_pipe = Box::new(v_yuv_tex::Pipeline::new(Rc::clone(&gl))?);
         let msdf_pipe = Box::new(msdf_tex::Pipeline::new(Rc::clone(&gl))?);
+        let dual_pipe = Box::new(yuv_dual::Transition::new(Rc::clone(&gl))?);
 
         Ok(Self {
             gl,
             pipelines: vec![rgb_pipe, yuv_pipe, msdf_pipe],
+            transition_pipelines: vec![dual_pipe],
             texture_vao,
             texture_program,
             fbo,
@@ -86,7 +89,34 @@ impl Renderer {
             model: M4x4::identity(),
             camera,
             mat_id: 0,
+            progress: 0.0,
+            from_pos: V2::zero(),
+            from_size: V2::zero(),
+            to_pos: V2::zero(),
+            to_size: V2::zero(),
         };
+
+        uniforms.model = M4x4::identity();
+        uniforms.mat_id = 0;
+        for transition in canvas.transitions() {
+            uniforms.from_pos = transition.from_pos;
+            uniforms.from_size = transition.from_size;
+            uniforms.to_pos = transition.to_pos;
+            uniforms.to_size = transition.to_size;
+            uniforms.progress = transition.progress;
+            let mesh = canvas.mesh(transition.mesh_id);
+            let pipe = self.transition_pipelines.get(transition.pipeline_id);
+            let from = canvas.materials().get(transition.from_id);
+            let to = canvas.materials().get(transition.to_id);
+            match (mesh, pipe, from, to) {
+                (Some(mesh), Some(pipe), Some(from), Some(to)) => {
+                    pipe.render(mesh, from, to, &uniforms)?;
+                }
+                _ => {
+                    continue;
+                }
+            }
+        }
 
         for obj in canvas.objects() {
             let mesh = canvas.mesh(obj.mesh_id);

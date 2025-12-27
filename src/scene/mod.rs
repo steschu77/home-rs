@@ -91,6 +91,7 @@ pub enum Element {
     Thumbnail(Picture),
     Icon(Icon),
     Text(Text),
+    Transition(Transition),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -112,6 +113,17 @@ pub struct Picture {
     pub src: Rect,
     pub opacity: f32,
     pub handle: Handle,
+}
+
+#[derive(Clone, Debug)]
+pub struct Transition {
+    pub from_dst: Rect,
+    pub from_src: Rect,
+    pub to_dst: Rect,
+    pub to_src: Rect,
+    pub from: Handle,
+    pub to: Handle,
+    pub progress: f32,
 }
 
 #[derive(Clone, Debug)]
