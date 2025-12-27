@@ -266,6 +266,18 @@ mod linux {
         let cy = 600;
         let win = unsafe { x11::xlib::XCreateSimpleWindow(display, root, 0, 0, cx, cy, 0, 0, 0) };
 
+        // Set up WM_DELETE_WINDOW protocol to handle window close events
+        let wm_delete_window = unsafe {
+            x11::xlib::XInternAtom(
+                display,
+                b"WM_DELETE_WINDOW\0".as_ptr() as *const i8,
+                x11::xlib::False,
+            )
+        };
+        unsafe {
+            x11::xlib::XSetWMProtocols(display, win, &wm_delete_window as *const _ as *mut _, 1);
+        }
+
         unsafe {
             x11::xlib::XSelectInput(
                 display,
@@ -299,11 +311,14 @@ mod linux {
                         }
                     }
                     x11::xlib::ClientMessage => {
-                        unsafe {
-                            x11::xlib::XDestroyWindow(display, win);
-                            x11::xlib::XCloseDisplay(display);
+                        let xclient = unsafe { event.client_message };
+                        if xclient.data.get_long(0) as u64 == wm_delete_window {
+                            unsafe {
+                                x11::xlib::XDestroyWindow(display, win);
+                                x11::xlib::XCloseDisplay(display);
+                            }
+                            return Ok(());
                         }
-                        return Ok(());
                     }
                     _ => {}
                 }
