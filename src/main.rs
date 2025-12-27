@@ -248,11 +248,11 @@ mod win32 {
 // ----------------------------------------------------------------------------
 #[cfg(target_os = "linux")]
 mod linux {
-    use crate::error::Result;
     use crate::app::App;
     use crate::core::app_loop::AppLoop;
     use crate::core::clock::Clock;
     use crate::core::input::{self, Event, Key};
+    use crate::error::Result;
     use crate::gl::linux::LinuxGLContext;
 
     pub fn main() -> Result<()> {
@@ -288,14 +288,14 @@ mod linux {
             while unsafe { x11::xlib::XPending(display) } > 0 {
                 let mut event: x11::xlib::XEvent = unsafe { std::mem::zeroed() };
                 unsafe { x11::xlib::XNextEvent(display, &mut event) };
-                    
+
                 match unsafe { event.type_ } {
-                    x11::xlib::Expose => {
-                    }
+                    x11::xlib::Expose => {}
                     x11::xlib::KeyPress => {
-                        let key_event = unsafe { event.key };
-                        if let Some(key) = xkey_to_key(key_event.keycode) {
-                            input.add_event(Event::KeyDown{ key });
+                        let keysym =
+                            unsafe { x11::xlib::XLookupKeysym(&mut event.key as *mut _, 0) };
+                        if let Some(key) = xkey_to_key(keysym as u64) {
+                            input.add_event(Event::KeyDown { key });
                         }
                     }
                     x11::xlib::ClientMessage => {
@@ -308,7 +308,7 @@ mod linux {
                     _ => {}
                 }
             }
-            
+
             if let Err(e) = app_loop.step(&mut app, &clock, &mut input) {
                 unsafe {
                     x11::xlib::XDestroyWindow(display, win);
@@ -316,20 +316,21 @@ mod linux {
                 }
                 return Ok(());
             }
-            
+
             context.swap_buffers();
         }
     }
-    
-    fn xkey_to_key(keycode: u32) -> Option<Key> {
-        match keycode {
-            9 => Some(Key::Exit),        // ESC
-            110 => Some(Key::Home),      // Home
-            113 => Some(Key::PrevScene), // Left arrow
-            114 => Some(Key::NextScene), // Right arrow
+
+    fn xkey_to_key(keysym: u64) -> Option<Key> {
+        use x11::keysym::*;
+        match keysym as u32 {
+            XK_Escape => Some(Key::Exit),
+            XK_Home => Some(Key::Home),
+            XK_Left => Some(Key::PrevScene),
+            XK_Right => Some(Key::NextScene),
             _ => None,
         }
-    }    
+    }
 }
 
 use crate::app::AppConfig;
