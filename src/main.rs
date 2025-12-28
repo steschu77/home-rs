@@ -247,6 +247,7 @@ mod win32 {
 
 // ----------------------------------------------------------------------------
 #[cfg(target_os = "linux")]
+#[allow(non_upper_case_globals)]
 mod linux {
     use crate::app::App;
     use crate::core::app_loop::AppLoop;
