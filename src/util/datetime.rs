@@ -267,6 +267,20 @@ impl DateTime {
 
         Ok(Self { date, time })
     }
+
+    // ------------------------------------------------------------------------
+    pub fn as_iso8601(&self) -> String {
+        let (year, month, day) = self.date.to_ymd();
+        let (hour, minute, second) = self.time.to_hms();
+        format!("{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}Z")
+    }
+
+    // ------------------------------------------------------------------------
+    pub fn as_timestamp(&self) -> String {
+        let (year, month, day) = self.date.to_ymd();
+        let (hour, minute, second) = self.time.to_hms();
+        format!("{year:04}{month:02}{day:02}_{hour:02}{minute:02}{second:02}")
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -276,7 +290,7 @@ impl fmt::Display for DateTime {
         let (hour, minute, second) = self.time.to_hms();
         write!(
             f,
-            "{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}Z"
+            "{year:04}/{month:02}/{day:02}-{hour:02}:{minute:02}:{second:02}"
         )
     }
 }
