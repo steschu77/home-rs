@@ -256,25 +256,31 @@ mod linux {
     use crate::core::input::{self, Event, Key};
     use crate::error::Result;
     use crate::gl::linux::LinuxGLContext;
+    use x11::xlib::{
+        XCloseDisplay, XCreateSimpleWindow, XDefaultScreen, XDestroyWindow, XDisplayHeight,
+        XDisplayWidth, XEvent, XLookupKeysym, XMapWindow, XNextEvent, XOpenDisplay, XPending,
+        XRaiseWindow, XRootWindow, XSelectInput,
+    };
 
     pub fn main() -> Result<()> {
         let cfg = super::init()?;
 
-        let display = unsafe { x11::xlib::XOpenDisplay(std::ptr::null()) };
-        let screen = unsafe { x11::xlib::XDefaultScreen(display) };
-        let root = unsafe { x11::xlib::XRootWindow(display, screen) };
+        let display = unsafe { XOpenDisplay(std::ptr::null()) };
+        let screen = unsafe { XDefaultScreen(display) };
+        let root = unsafe { XRootWindow(display, screen) };
 
-        let cx = 800;
-        let cy = 600;
-        let win = unsafe { x11::xlib::XCreateSimpleWindow(display, root, 0, 0, cx, cy, 0, 0, 0) };
+        let cx = unsafe { XDisplayWidth(display, screen) as u32 };
+        let cy = unsafe { XDisplayHeight(display, screen) as u32 };
+        let win = unsafe { XCreateSimpleWindow(display, root, 0, 0, cx, cy, 0, 0, 0) };
 
         unsafe {
-            x11::xlib::XSelectInput(
+            XSelectInput(
                 display,
                 win,
                 x11::xlib::ExposureMask | x11::xlib::KeyPressMask,
             );
-            x11::xlib::XMapWindow(display, win);
+            XMapWindow(display, win);
+            XRaiseWindow(display, win);
         }
 
         let context = LinuxGLContext::from_window(display, screen, win)?;
@@ -287,15 +293,14 @@ mod linux {
         let mut input = input::Input::new();
 
         loop {
-            while unsafe { x11::xlib::XPending(display) } > 0 {
-                let mut event: x11::xlib::XEvent = unsafe { std::mem::zeroed() };
-                unsafe { x11::xlib::XNextEvent(display, &mut event) };
+            while unsafe { XPending(display) } > 0 {
+                let mut event: XEvent = unsafe { std::mem::zeroed() };
+                unsafe { XNextEvent(display, &mut event) };
 
                 match unsafe { event.type_ } {
                     x11::xlib::Expose => {}
                     x11::xlib::KeyPress => {
-                        let keysym =
-                            unsafe { x11::xlib::XLookupKeysym(&mut event.key as *mut _, 0) };
+                        let keysym = unsafe { XLookupKeysym(&mut event.key as *mut _, 0) };
                         if let Some(key) = xkey_to_key(keysym as u32) {
                             input.add_event(Event::KeyDown { key });
                         }
@@ -307,8 +312,8 @@ mod linux {
             if let Err(e) = app_loop.step(&mut app, &clock, &mut input) {
                 eprintln!("Home loop exited with: {e:?}");
                 unsafe {
-                    x11::xlib::XDestroyWindow(display, win);
-                    x11::xlib::XCloseDisplay(display);
+                    XDestroyWindow(display, win);
+                    XCloseDisplay(display);
                 }
                 return Ok(());
             }
