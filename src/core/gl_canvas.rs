@@ -33,7 +33,7 @@ pub struct GlTransition {
 pub enum GlMaterial {
     Color([f32; 4]),
     Texture(gl::GLuint),
-    YuvTexture(gl::GLuint, gl::GLuint, gl::GLuint),
+    YUVTexture(gl::GLuint, gl::GLuint, gl::GLuint),
 }
 
 // ----------------------------------------------------------------------------
@@ -152,7 +152,7 @@ impl Canvas {
         let id_cr =
             gl_graphics::create_texture(&self.gl, width / 2, height / 2, format, cr, filter, wrap)?;
 
-        Ok(GlMaterial::YuvTexture(id_luma, id_cb, id_cr))
+        Ok(GlMaterial::YUVTexture(id_luma, id_cb, id_cr))
     }
 
     // ------------------------------------------------------------------------
@@ -161,7 +161,7 @@ impl Canvas {
             GlMaterial::Texture(id) => {
                 gl_graphics::delete_texture(&self.gl, *id);
             }
-            GlMaterial::YuvTexture(id_luma, id_cb, id_cr) => {
+            GlMaterial::YUVTexture(id_luma, id_cb, id_cr) => {
                 gl_graphics::delete_texture(&self.gl, *id_luma);
                 gl_graphics::delete_texture(&self.gl, *id_cb);
                 gl_graphics::delete_texture(&self.gl, *id_cr);
