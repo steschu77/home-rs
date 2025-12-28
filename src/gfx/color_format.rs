@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
 // ----------------------------------------------------------------------------
-#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ColorFormat {
     Y1,  // 1 bit Grayscale

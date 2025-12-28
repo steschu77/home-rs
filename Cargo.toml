@@ -27,3 +27,4 @@ x11 = { version = "2.21", features = ["xlib", "glx"] }
 
 [lints.clippy]
 collapsible_if = "allow"
+upper_case_acronyms = "allow"
