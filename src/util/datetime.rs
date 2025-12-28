@@ -167,9 +167,10 @@ const fn days_from_gregorian(year: i32, month: i32, day: i32) -> i32 {
 // ----------------------------------------------------------------------------
 #[rustfmt::skip]
 const fn gregorian_from_days(days: i32) -> (i32, Month, i32) {
-    const MONTHS: [Month; 12] = [
-        Month::Mar, Month::Apr, Month::May, Month::Jun, Month::Jul, Month::Aug,
-        Month::Sep, Month::Oct, Month::Nov, Month::Dec, Month::Jan, Month::Feb,
+    const MONTHS: [(Month, i32); 12] = [
+        (Month::Mar, 0), (Month::Apr, 0), (Month::May, 0), (Month::Jun, 0), 
+        (Month::Jul, 0), (Month::Aug, 0), (Month::Sep, 0), (Month::Oct, 0), 
+        (Month::Nov, 0), (Month::Dec, 0), (Month::Jan, 1), (Month::Feb, 1),
     ];
     let z = days + 719_468;
     let era = z.div_euclid(146_097);
@@ -178,9 +179,9 @@ const fn gregorian_from_days(days: i32) -> (i32, Month, i32) {
     let y = yoe + era * 400;
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);              // [0, 365]
     let mp = (5 * doy + 2) / 153;                                   // [0, 11]
-    let day = doy - (153 * mp + 2) / 5 + 1;                           // [1, 31]
-    let month = MONTHS[mp as usize];
-    let year = y + if mp >= 10 { 0 } else { 1 };
+    let day = doy - (153 * mp + 2) / 5 + 1;                         // [1, 31]
+    let (month, year_offset) = MONTHS[mp as usize];
+    let year = y + year_offset;
     (year, month, day)
 }
 
