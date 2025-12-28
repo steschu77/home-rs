@@ -1,0 +1,9 @@
+name: Install Linux dependencies
+description: Install native dependencies required for build and test
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install system packages
+      shell: bash
+      run: sudo apt-get install -y libglx-dev libgl-dev libegl-dev

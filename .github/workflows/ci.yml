@@ -1,4 +1,4 @@
-name: Rust
+name: Rust CI
 
 on:
   push:
@@ -11,6 +11,7 @@ env:
 
 jobs:
   build:
+    name: Clippy (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -18,11 +19,37 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install dependencies
-      if: runner.os == 'Linux'
-      run: sudo apt-get install -y libglx-dev libgl-dev libegl-dev
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/linux-deps
 
-    - name: Build the application
-      run: cargo build --verbose
+      - name: Add Clippy
+        run: rustup component add clippy
+
+      - run: cargo clippy -- -D warnings
+
+  fmt:
+    name: Format check
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup component add rustfmt
+      - run: cargo fmt -- --check
+
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/linux-deps
+
+      - name: Run tests
+        run: cargo test --verbose

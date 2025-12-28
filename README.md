@@ -1,5 +1,7 @@
 # Home Assist
 
+[![Rust](https://github.com/steschu77/home-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/steschu77/home-rs/actions/workflows/ci.yml)
+
 Home Assist is a minimal, high-performance Rust project that provides a lightweight operating system layer and user interface for a Raspberry Pi–based home information display.
 
 It is designed to run on a dedicated device (e.g. a Raspberry Pi) and present photos and contextual information such as weather, time, news, calendar reminders, shopping lists, and more - without the overhead of a full desktop environment or web stack.
