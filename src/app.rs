@@ -37,7 +37,7 @@ impl App {
 
         Ok(Self {
             config,
-            renderer: Renderer::new(gl)?,
+            renderer: Renderer::new(gl, cx as usize, cy as usize)?,
             scenes,
         })
     }
