@@ -68,8 +68,8 @@ pub fn pal8_to_rgb32(pal8: ImagePal, geo: &ImageGeometry) -> ImageRgb32 {
 
 pub fn ycbcr420_to_ycbcr24(luma: &[u8], cb: &[u8], cr: &[u8], geo: &ImageGeometry) -> Vec<u8> {
     let mut yuv24 = vec![0; geo.cx * geo.cy * 3];
-    let chroma_width = (geo.cx + 1) / 2;
-    let chroma_height = (geo.cy + 1) / 2;
+    let chroma_width = geo.cx.div_ceil(2);
+    let chroma_height = geo.cy.div_ceil(2);
 
     for y in 0..geo.cy {
         let src_luma = &luma[y * geo.cx..(y + 1) * geo.cx];
