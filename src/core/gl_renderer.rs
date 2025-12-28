@@ -44,12 +44,12 @@ pub struct Renderer {
 
 impl Renderer {
     // ----------------------------------------------------------------------------
-    pub fn new(gl: Rc<gl::OpenGlFunctions>, cx: usize, cy: usize) -> Result<Self> {
+    pub fn new(gl: Rc<gl::OpenGlFunctions>, width: usize, height: usize) -> Result<Self> {
         print_opengl_info(&gl);
 
         let texture_vao = create_texture_vao(&gl);
         let texture_program = create_program(&gl, "texture", VS_TEXTURE, FS_TEXTURE)?;
-        let (fbo, color_tex, depth_tex) = create_framebuffer(&gl, cx, cy)?;
+        let (fbo, color_tex, depth_tex) = create_framebuffer(&gl, width, height)?;
 
         let rgb_pipe = Box::new(v_pos_tex::Pipeline::new(Rc::clone(&gl))?);
         let yuv_pipe = Box::new(v_yuv_tex::Pipeline::new(Rc::clone(&gl))?);
