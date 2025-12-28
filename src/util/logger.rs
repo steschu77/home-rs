@@ -12,7 +12,8 @@ struct FileLogger {
 // ----------------------------------------------------------------------------
 impl FileLogger {
     fn init(path: &std::path::Path, level: log::LevelFilter) -> Result<()> {
-        let file_name = path.join("app.log");
+        let date_time = DateTime::now().as_timestamp();
+        let file_name = path.join(format!("{date_time}.log"));
         let logger = FileLogger {
             file: RwLock::new(
                 std::fs::OpenOptions::new()
@@ -40,8 +41,7 @@ impl Log for FileLogger {
                 let timestamp = DateTime::now();
                 let _ = writeln!(
                     &mut file,
-                    "{} [{:5}] {}",
-                    timestamp,
+                    "{timestamp} [{:5}] {}",
                     record.level(),
                     record.args()
                 );
