@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::gfx::color_format::ColorFormat;
 
 // ----------------------------------------------------------------------------

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use super::m4x4::M4x4;
 use super::v4::V4;
 
