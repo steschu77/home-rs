@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 // Date utilities based on Howard Hinnant's algorithms
 // https://howardhinnant.github.io/date_algorithms.html
 

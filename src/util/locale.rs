@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::util::datetime::{Date, Month, Time, Weekday};
 use std::fmt;
 
